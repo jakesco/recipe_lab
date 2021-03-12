@@ -1,138 +1,204 @@
 import sqlite3
-from ingredient import Ingredient
-from recipe import Recipe
-from pprint import pprint
+import os
+from objects import Recipe, Ingredient
 
-# conn = sqlite3.connect("recipelab.db")
-conn = sqlite3.connect(":memory:")
-
-c = conn.cursor()
+__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 
-def init_db():
-    with open("recipelab/schema.sql") as f:
-        c.executescript(f.read())
+class DB(object):
+    def __init__(self, db_path):
+        self._db_conn = sqlite3.connect(db_path)
+        self._db_conn.row_factory = sqlite3.Row
+        self._db_cur = self._db_conn.cursor()
 
+    def __del__(self):
+        self._db_conn.close()
 
-def insert_ingredient(ingredient):
-    with conn:
-        c.execute(
-            "INSERT INTO ingredient VALUES (?, ?, ?, ?, ?, ?)",
-            (
-                ingredient.id,
-                ingredient.name,
-                ingredient.amount_per_unit,
-                ingredient.price_per_unit,
-                ingredient.type.value,
-                ingredient.unit,
-            ),
-        )
+    def init_db(self):
+        with open(os.path.join(__location__, "schema.sql")) as f:
+            self._db_cur.executescript(f.read())
 
-
-def update_ingredient(id, changes):
-    sql = ["UPDATE ingredient SET"]
-    for k in changes.keys():
-        sql.append(f"{k} = :{k}")
-        sql.append(",")
-    del sql[-1]
-    sql.append("WHERE id = :id")
-    changes["id"] = id
-    query = " ".join(sql)
-
-    with conn:
-        c.execute(query, changes)
-
-
-def delete_ingredient(id):
-    with conn:
-        c.execute("DELETE FROM ingredient WHERE id = ?", (str(id)))
-
-
-def find_ingredient(id):
-    with conn:
-        c.execute("SELECT * FROM ingredient WHERE id = ?", (str(id)))
-
-    match = c.fetchone()
-    return Ingredient(
-        match[1], match[2], match[3], Ingredient.Type(match[4]), match[5], match[0]
-    )
-
-
-def insert_recipe(recipe):
-    with conn:
-        c.execute(
-            "INSERT INTO recipe VALUES (?, ?, ?, ?, ?)",
-            (
-                recipe.id,
-                recipe.name,
-                recipe.servings,
-                recipe.serving_unit,
-                recipe.sale_price,
-            ),
-        )
-
-    c.execute("SELECT id FROM recipe WHERE name = :name", {"name": recipe.name})
-    recipe_id = c.fetchone()[0]
-
-    with conn:
-        for i in recipe.ingredients:
-            c.execute(
-                "INSERT INTO recipe_ingredient VALUES (?, ?, ?)",
-                (recipe_id, i[0], i[1]),
+    # Create
+    def insert_ingredient(self, ingredient):
+        with self._db_conn:
+            self._db_cur.execute(
+                "INSERT INTO ingredient VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    ingredient.id,
+                    ingredient.name,
+                    ingredient.amount_per_unit,
+                    ingredient.price_per_unit,
+                    ingredient.type.value,
+                    ingredient.unit,
+                ),
             )
 
+    def insert_recipe_ingredients(self, recipe_id, ingredients):
+        with self._db_conn:
+            for i in ingredients:
+                self._db_cur.execute(
+                    "INSERT INTO recipe_ingredient VALUES (?, ?, ?)",
+                    (recipe_id, i[0], i[1]),
+                )
 
-def get_recipe_by_name(name):
-    c.execute("SELECT * FROM recipe WHERE name = :name", {"name": name})
-    query = c.fetchone()
-    print(query)
-    print(get_ingredients_for_recipe(query[0]))
+    def insert_recipe(self, recipe):
+        with self._db_conn:
+            self._db_cur.execute(
+                "INSERT INTO recipe VALUES (?, ?, ?, ?, ?)",
+                (
+                    recipe.id,
+                    recipe.name,
+                    recipe.servings,
+                    recipe.serving_unit,
+                    recipe.sale_price,
+                ),
+            )
 
-
-def get_ingredients_for_recipe(recipe_id):
-    c.execute("SELECT * FROM recipe_ingredient WHERE recipe_id = ?", (recipe_id))
-    return c.fetchall()
-
-
-def get_all_ingredients():
-    c.execute("SELECT * FROM ingredient")
-    query = []
-    for row in c.fetchall():
-        query.append(
-            Ingredient(row[1], row[2], row[3], Ingredient.Type(row[4]), row[5], row[0])
+        # Database may assign a different id, this ensures we have the correct id
+        self._db_cur.execute(
+            "SELECT id FROM recipe WHERE name = :name", {"name": recipe.name}
         )
-    return query
+        recipe_id = self._db_cur.fetchone()[0]
 
+        self.insert_recipe_ingredients(recipe_id, recipe.ingredients)
 
-init_db()
+    # Retrieve
+    def get_ingredient(self, id):
+        self._db_cur.execute("SELECT * FROM ingredient WHERE id = ?", (str(id)))
+        row = self._db_cur.fetchone()
+        return Ingredient(
+            row["name"],
+            row["amount_per_unit"],
+            row["price_per_unit"],
+            Ingredient.Type(row["type"]),
+            row["unit"],
+            row["id"],
+        )
 
-ingredients = [
-    Ingredient("Unsalted Crackers", 140, 1.23, Ingredient.Type.OTHER, "cracker"),
-    Ingredient("Unsalted Butter", 16, 2.94, Ingredient.Type.DRY),
-    Ingredient("Brown Sugar", 32, 2.73, Ingredient.Type.DRY),
-    Ingredient("Salt", 4.4, 0.98, Ingredient.Type.DRY),
-    Ingredient("Vanilla Extract", 2, 4.98, Ingredient.Type.FLUID),
-    Ingredient("Semi-Sweet Chocolate Chips", 12, 1.74, Ingredient.Type.DRY),
-]
+    def get_all_ingredients(self):
+        self._db_cur.execute("SELECT * FROM ingredient")
+        return list(
+            map(
+                lambda row: Ingredient(
+                    row["name"],
+                    row["amount_per_unit"],
+                    row["price_per_unit"],
+                    Ingredient.Type(row["type"]),
+                    row["unit"],
+                    row["id"],
+                ),
+                self._db_cur.fetchall(),
+            )
+        )
 
-for i in ingredients:
-    insert_ingredient(i)
+    def get_ingredients_for_recipe(self, recipe_id):
+        self._db_cur.execute(
+            "SELECT * FROM recipe_ingredient WHERE recipe_id = ?", (str(recipe_id))
+        )
+        return list(
+            map(lambda x: (x["ingredient_id"], x["amount"]), self._db_cur.fetchall())
+        )
 
-recipe = Recipe(
-    "Chocolate Caramel Toffee",
-    24,
-    "crackers",
-    20.00,
-    [(1, 40), (2, 8), (3, 8), (4, 0.05), (5, 0.87), (6, 12)],
-)
+    def get_recipe(self, id):
+        self._db_cur.execute("SELECT * FROM recipe WHERE id = ?", (str(id)))
+        row = self._db_cur.fetchone()
+        return Recipe(
+            row["name"],
+            row["servings"],
+            row["serving_unit"],
+            row["sale_price"],
+            self.get_ingredients_for_recipe(id),
+            row["id"],
+        )
 
-insert_recipe(recipe)
+    def get_all_recipes(self):
+        self._db_cur.execute("SELECT * FROM recipe")
+        return list(
+            map(
+                lambda row: Recipe(
+                    row["name"],
+                    row["servings"],
+                    row["serving_unit"],
+                    row["sale_price"],
+                    self.get_ingredients_for_recipe(row["id"]),
+                    row["id"],
+                ),
+                self._db_cur.fetchall(),
+            )
+        )
 
-pprint(get_all_ingredients())
+    # Update
+    def update_ingredient(self, id, changes):
 
-update_ingredient(1, {"name": "test name", "amount_per_unit": 20})
+        to_change = changes.keys()
+        # TODO: make this error better
+        if "id" in to_change:
+            print("ID cannot be changed")
+            return
+        if "type" in to_change:
+            type_number = changes["type"].value
+            changes["type"] = type_number
 
-print()
-pprint(get_all_ingredients())
+        self._db_cur.execute("SELECT * FROM ingredient WHERE id = ?", (str(id)))
+        values = dict(self._db_cur.fetchone())
+        values.update(changes)
 
-conn.close()
+        with self._db_conn:
+            self._db_cur.execute(
+                """
+                UPDATE ingredient
+                SET name = :name,
+                amount_per_unit = :amount_per_unit,
+                price_per_unit = :price_per_unit,
+                type = :type,
+                unit = :unit
+                WHERE id = :id
+                """,
+                values,
+            )
+
+    def update_recipe(self, id, changes):
+        to_change = changes.keys()
+        # TODO: make this error better
+        if "id" in to_change:
+            print("ID cannot be changed")
+            return
+        if "ingredients" in to_change:
+            with self._db_conn:
+                self._db_cur.execute(
+                    "DELETE FROM recipe_ingredient WHERE recipe_id = ?", (str(id))
+                )
+            self.insert_recipe_ingredients(id, changes["ingredients"])
+            del changes["ingredients"]
+
+        self._db_cur.execute("SELECT * FROM recipe WHERE id = ?", (str(id)))
+        values = dict(self._db_cur.fetchone())
+        values.update(changes)
+
+        with self._db_conn:
+            self._db_cur.execute(
+                """
+                UPDATE recipe
+                SET name = :name,
+                servings = :servings,
+                serving_unit = :serving_unit,
+                sale_price = :sale_price
+                WHERE id = :id
+                """,
+                values,
+            )
+
+    # Delete
+    def delete_ingredient(self, id):
+        with self._db_conn:
+            self._db_cur.execute(
+                "DELETE FROM recipe_ingredient WHERE ingredient_id = ?", (str(id))
+            )
+            self._db_cur.execute("DELETE FROM ingredient WHERE id = ?", (str(id)))
+
+    def delete_recipe(self, id):
+        with self._db_conn:
+            self._db_cur.execute(
+                "DELETE FROM recipe_ingredient WHERE recipe_id = ?", (str(id))
+            )
+            self._db_cur.execute("DELETE FROM recipe WHERE id = ?", (str(id)))
