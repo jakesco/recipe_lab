@@ -23,10 +23,39 @@ def insert_ingredient(ingredient):
                 ingredient.name,
                 ingredient.amount_per_unit,
                 ingredient.price_per_unit,
-                ingredient.ingredient_type.value,
+                ingredient.type.value,
                 ingredient.unit,
             ),
         )
+
+
+def update_ingredient(id, changes):
+    sql = ["UPDATE ingredient SET"]
+    for k in changes.keys():
+        sql.append(f"{k} = :{k}")
+        sql.append(",")
+    del sql[-1]
+    sql.append("WHERE id = :id")
+    changes["id"] = id
+    query = " ".join(sql)
+
+    with conn:
+        c.execute(query, changes)
+
+
+def delete_ingredient(id):
+    with conn:
+        c.execute("DELETE FROM ingredient WHERE id = ?", (str(id)))
+
+
+def find_ingredient(id):
+    with conn:
+        c.execute("SELECT * FROM ingredient WHERE id = ?", (str(id)))
+
+    match = c.fetchone()
+    return Ingredient(
+        match[1], match[2], match[3], Ingredient.Type(match[4]), match[5], match[0]
+    )
 
 
 def insert_recipe(recipe):
@@ -100,6 +129,10 @@ recipe = Recipe(
 insert_recipe(recipe)
 
 pprint(get_all_ingredients())
-pprint(get_recipe_by_name("Chocolate Caramel Toffee"))
+
+update_ingredient(1, {"name": "test name", "amount_per_unit": 20})
+
+print()
+pprint(get_all_ingredients())
 
 conn.close()
