@@ -1,6 +1,6 @@
 import sqlite3
 import os
-from objects import Recipe, Ingredient
+from .objects import Recipe, Ingredient
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
