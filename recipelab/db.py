@@ -1,6 +1,5 @@
 import sqlite3
 import os
-from .objects import Recipe, Ingredient
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -19,113 +18,68 @@ class DB(object):
             self._db_cur.executescript(f.read())
 
     # Create
-    def insert_ingredient(self, ingredient):
+    def insert_ingredient(
+        self, name, amount_per_unit, price_per_unit, type_value, unit
+    ):
         with self._db_conn:
             self._db_cur.execute(
                 "INSERT INTO ingredient VALUES (?, ?, ?, ?, ?, ?)",
-                (
-                    ingredient.id,
-                    ingredient.name,
-                    ingredient.amount_per_unit,
-                    ingredient.price_per_unit,
-                    ingredient.type.value,
-                    ingredient.unit,
-                ),
+                (None, name, amount_per_unit, price_per_unit, type_value, unit),
             )
 
-    def insert_recipe_ingredients(self, recipe_id, ingredients):
+    def insert_recipe_ingredient(self, recipe_id, ingredient_id, amount):
         with self._db_conn:
-            for i in ingredients:
-                self._db_cur.execute(
-                    "INSERT INTO recipe_ingredient VALUES (?, ?, ?)",
-                    (recipe_id, i[0], i[1]),
-                )
+            self._db_cur.execute(
+                "INSERT INTO recipe_ingredient VALUES (?, ?, ?)",
+                (recipe_id, ingredient_id, amount),
+            )
 
-    def insert_recipe(self, recipe):
+    def insert_recipe(self, name, servings, serving_unit, sale_price, ingredients):
         with self._db_conn:
             self._db_cur.execute(
                 "INSERT INTO recipe VALUES (?, ?, ?, ?, ?)",
-                (
-                    recipe.id,
-                    recipe.name,
-                    recipe.servings,
-                    recipe.serving_unit,
-                    recipe.sale_price,
-                ),
+                (None, name, servings, serving_unit, sale_price),
             )
 
         # Database may assign a different id, this ensures we have the correct id
-        self._db_cur.execute(
-            "SELECT id FROM recipe WHERE name = :name", {"name": recipe.name}
-        )
+        self._db_cur.execute("SELECT id FROM recipe WHERE name = :name", {"name": name})
         recipe_id = self._db_cur.fetchone()[0]
 
-        self.insert_recipe_ingredients(recipe_id, recipe.ingredients)
+        for amount, ingredient in ingredients:
+            self.insert_recipe_ingredients(recipe_id, ingredient.id, amount)
 
     # Retrieve
     def get_ingredient(self, id):
         self._db_cur.execute("SELECT * FROM ingredient WHERE id = ?", (str(id)))
-        row = self._db_cur.fetchone()
-        return Ingredient(
-            row["name"],
-            row["amount_per_unit"],
-            row["price_per_unit"],
-            Ingredient.Type(row["type"]),
-            row["unit"],
-            row["id"],
+        return self._db_cur.fetchone()
+
+    def get_ingredient_by_name(self, name):
+        self._db_cur.execute(
+            "SELECT * FROM ingredient WHERE name = :name", {"name": name}
         )
+        return self._db_cur.fetchone()
 
     def get_all_ingredients(self):
         self._db_cur.execute("SELECT * FROM ingredient")
-        return list(
-            map(
-                lambda row: Ingredient(
-                    row["name"],
-                    row["amount_per_unit"],
-                    row["price_per_unit"],
-                    Ingredient.Type(row["type"]),
-                    row["unit"],
-                    row["id"],
-                ),
-                self._db_cur.fetchall(),
-            )
-        )
+        return self._db_cur.fetchall()
 
     def get_ingredients_for_recipe(self, recipe_id):
         self._db_cur.execute(
             "SELECT * FROM recipe_ingredient WHERE recipe_id = ?", (str(recipe_id))
         )
-        return list(
-            map(lambda x: (x["ingredient_id"], x["amount"]), self._db_cur.fetchall())
-        )
+        return self._db_cur.fetchall()
 
     def get_recipe(self, id):
         self._db_cur.execute("SELECT * FROM recipe WHERE id = ?", (str(id)))
-        row = self._db_cur.fetchone()
-        return Recipe(
-            row["name"],
-            row["servings"],
-            row["serving_unit"],
-            row["sale_price"],
-            self.get_ingredients_for_recipe(id),
-            row["id"],
-        )
+        return self._db_cur.fetchone()
+
+    def get_recipe_by_name(self, name):
+        self._db_cur.execute("SELECT * FROM recipe WHERE name = :name", {"name": name})
+        return self._db_cur.fetchone()
 
     def get_all_recipes(self):
         self._db_cur.execute("SELECT * FROM recipe")
-        return list(
-            map(
-                lambda row: Recipe(
-                    row["name"],
-                    row["servings"],
-                    row["serving_unit"],
-                    row["sale_price"],
-                    self.get_ingredients_for_recipe(row["id"]),
-                    row["id"],
-                ),
-                self._db_cur.fetchall(),
-            )
-        )
+        return self._db_cur.fetchall()
 
     # Update
     def update_ingredient(self, id, changes):
