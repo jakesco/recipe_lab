@@ -4,7 +4,7 @@ import os
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 
-class DB(object):
+class DB:
     def __init__(self, db_path):
         self._db_conn = sqlite3.connect(db_path)
         self._db_conn.row_factory = sqlite3.Row
