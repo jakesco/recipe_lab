@@ -1,4 +1,5 @@
 import unittest
+from pprint import pprint
 from context import Ingredient
 from context import RecipeLab
 
@@ -10,12 +11,20 @@ class Test(unittest.TestCase):
 
     def setUp(self):
         self.rl = RecipeLab(":memory:")
+        with open("tests/sample_data.sql") as f:
+            self.rl.db._db_cur.executescript(f.read())
 
     def test_new_ingredient(self):
-        ret = self.rl.new_ingredient(
-            "Unsalted Crackers", 140, 1.23, Ingredient.Type.OTHER, "cracker"
-        )
-        print(ret)
+        pass
+
+    def test_new_recipe(self):
+        pass
+
+    def test_add_ingredient_to_recipe(self):
+        pass
+
+    def test_list_ingredients(self):
+        pprint(self.rl.list_ingredients())
 
 
 if __name__ == "__main__":

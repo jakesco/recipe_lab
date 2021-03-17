@@ -11,7 +11,7 @@ class Recipe:
         self.id = id
 
     def __repr__(self):
-        return "Recipe({} - {}, {} {}, ${:.2f}, {} ingredients".format(
+        return "Recipe({} - {}, {} {}, ${:.2f}, {} ingredients)".format(
             self.id,
             self.name,
             self.servings,

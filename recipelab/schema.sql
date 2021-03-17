@@ -3,8 +3,8 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE ingredient (
     id INTEGER PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,
-    amount_per_unit REAL NOT NULL,
-    price_per_unit REAL NOT NULL,
+    package_amount REAL NOT NULL,
+    package_cost REAL NOT NULL,
     type INTEGER NOT NULL CHECK(type in (1, 2, 3)),
     unit TEXT
 );

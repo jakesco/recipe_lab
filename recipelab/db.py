@@ -18,14 +18,13 @@ class DB:
             self._db_cur.executescript(f.read())
 
     # Create
-    def insert_ingredient(
-        self, name, amount_per_unit, price_per_unit, type_value, unit
-    ):
+    def insert_ingredient(self, name, package_amount, package_cost, type_value, unit):
         with self._db_conn:
             self._db_cur.execute(
                 "INSERT INTO ingredient VALUES (?, ?, ?, ?, ?, ?)",
-                (None, name, amount_per_unit, price_per_unit, type_value, unit),
+                (None, name, package_amount, package_cost, type_value, unit),
             )
+        return self.get_ingredient_by_name(name)
 
     def insert_recipe_ingredient(self, recipe_id, ingredient_id, amount):
         with self._db_conn:
@@ -47,6 +46,10 @@ class DB:
 
         for amount, ingredient in ingredients:
             self.insert_recipe_ingredients(recipe_id, ingredient.id, amount)
+
+        recipe = self.get_recipe_by_name(name)
+
+        return (recipe, self.get_ingredients_for_recipe(recipe["id"]))
 
     # Retrieve
     def get_ingredient(self, id):
@@ -102,8 +105,8 @@ class DB:
                 """
                 UPDATE ingredient
                 SET name = :name,
-                amount_per_unit = :amount_per_unit,
-                price_per_unit = :price_per_unit,
+                package_amount = :package_amount,
+                package_cost = :package_cost,
                 type = :type,
                 unit = :unit
                 WHERE id = :id
