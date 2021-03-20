@@ -7,3 +7,4 @@ from recipelab.core import RecipeLab
 from recipelab.db import DB
 from recipelab.ingredient import Ingredient
 from recipelab.recipe import Recipe
+from recipelab.recipe import IngredientAmount

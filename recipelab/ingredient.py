@@ -7,7 +7,7 @@ class Ingredient:
         FLUID = 2
         OTHER = 3
 
-    def __init__(self, name, package_amount, package_cost, type, unit=None, id=None):
+    def __init__(self, name, package_amount, package_cost, type, unit=None):
         self.id = id
         self.name = name
         self.package_amount = float(package_amount)
@@ -23,8 +23,7 @@ class Ingredient:
             self.unit = unit
 
     def __repr__(self):
-        return "Ingredient({} - {}, {}, {} {}(s), ${:.2f}, ${:.2f} per {})".format(
-            self.id,
+        return "Ingredient({}, {}, {} {}(s), ${:.2f}, ${:.2f} per {})".format(
             self.name,
             self.type,
             self.package_amount,
@@ -33,6 +32,3 @@ class Ingredient:
             self.cost_per_unit,
             self.unit,
         )
-
-    def cost(self, amount):
-        return round(self.cost_per_unit * amount, 2)
