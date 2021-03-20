@@ -6,6 +6,7 @@ INSERT INTO ingredient VALUES (5, "Vanilla Extract", 2, 4.98, 2, "fl. oz");
 INSERT INTO ingredient VALUES (6, "Semi-Sweet Chocolate Chips", 12, 1.74, 1, "oz");
 
 INSERT INTO recipe VALUES (1, "Chocolate Caramel Toffee", 24, "cracker", 20);
+INSERT INTO recipe VALUES (2, "Test Recipe 2", 10, "test plates", 2);
 
 INSERT INTO recipe_ingredient VALUES (1, 1, 40);
 INSERT INTO recipe_ingredient VALUES (1, 2, 8);
@@ -13,3 +14,6 @@ INSERT INTO recipe_ingredient VALUES (1, 3, 8);
 INSERT INTO recipe_ingredient VALUES (1, 4, 0.0425);
 INSERT INTO recipe_ingredient VALUES (1, 5, 0.085);
 INSERT INTO recipe_ingredient VALUES (1, 6, 12);
+INSERT INTO recipe_ingredient VALUES (2, 1, 10);
+INSERT INTO recipe_ingredient VALUES (2, 3, 5);
+INSERT INTO recipe_ingredient VALUES (2, 6, 80);

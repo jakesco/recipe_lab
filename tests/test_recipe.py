@@ -11,16 +11,13 @@ class Test(unittest.TestCase):
             Ingredient("Test Ing 3", 100, 50, Ingredient.Type.OTHER, "tests"),
         ]
 
-    def tearDown(self):
-        # runs after each test
-        pass
-
     def test_add_ingredient(self):
         r1 = Recipe("Test Recipe 1", 2, "plate", 25.50, [])
         r1.add_ingredient(20, self.sample_ing[0])
         self.assertEqual(len(r1.ingredients), 1)
 
     def test_add_same_ingredient(self):
+        # Should not duplicate
         r1 = Recipe("Test Recipe 1", 2, "plate", 25.50, [])
         r1.add_ingredient(20, self.sample_ing[0])
         r1.add_ingredient(20, self.sample_ing[0])

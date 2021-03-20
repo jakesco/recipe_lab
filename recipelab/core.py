@@ -15,23 +15,21 @@ class RecipeLab:
             db_row_ingredient["package_cost"],
             Ingredient.Type(db_row_ingredient["type"]),
             db_row_ingredient["unit"],
-            db_row_ingredient["id"],
         )
 
     def __db_to_recipe(self, db_row_recipe, db_row_recipe_ingredient):
-        ings = []
-        for _, ingredient_id, amount in db_row_recipe_ingredient:
-            i = self.db.get_ingredient(ingredient_id)
-            ings.append((amount, self.__db_to_ingredient(i)))
-
-        return Recipe(
+        recipe = Recipe(
             db_row_recipe["name"],
             db_row_recipe["servings"],
             db_row_recipe["serving_unit"],
             db_row_recipe["sale_price"],
-            ings,
-            db_row_recipe["id"],
+            [],
         )
+        for row in db_row_recipe_ingredient:
+            ingredient = self.__db_to_ingredient(row)
+            recipe.add_ingredient(row["amount"], ingredient)
+
+        return recipe
 
     def new_ingredient(self, name, package_amount, package_cost, type, unit=None):
         ing = self.db.insert_ingredient(
@@ -40,17 +38,20 @@ class RecipeLab:
 
         return self.__db_to_ingredient(ing)
 
-    def new_recipe(self, name, servings, serving_unit, sale_price, ingredients=[]):
-        r, i = self.db.insert_recipe(
-            name, servings, serving_unit, sale_price, ingredients
-        )
+    def get_recipe(self, name):
+        r, i = self.db.get_recipe(name)
         return self.__db_to_recipe(r, i)
 
-    def add_ingredient_to_recipe(self, recipe, amount, ingredient):
-        self.db.insert_recipe_ingredient(recipe.id, ingredient.id, amount)
-        return self.__db_to_recipe(
-            self.db.get_recipe(recipe.id), self.db.get_ingredients_for_recipe(recipe.id)
+    def save_recipe(self, recipe):
+        pass
+
+    def list_recipes(self):
+        return list(
+            map(lambda r: self.__db_to_recipe(r[0], r[1]), self.db.get_all_recipes())
         )
 
     def list_ingredients(self):
         return list(map(self.__db_to_ingredient, self.db.get_all_ingredients()))
+
+    def fuzzy_name_search(self, search, obj_list):
+        return list(filter(lambda item: search in item.name, obj_list))

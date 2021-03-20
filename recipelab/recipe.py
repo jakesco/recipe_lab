@@ -37,7 +37,7 @@ class Recipe:
         return sum(costs)
 
     def cost_per_serving(self):
-        return round(self.cost() / self.servings, 2)
+        return self.cost() / self.servings
 
     def profit(self):
-        return round(self.sale_price - self.cost(), 2)
+        return self.sale_price - self.cost()

@@ -68,21 +68,30 @@ class DB:
 
     def get_ingredients_for_recipe(self, recipe_id):
         self._db_cur.execute(
-            "SELECT * FROM recipe_ingredient WHERE recipe_id = ?", (str(recipe_id))
+            """
+            SELECT * FROM recipe_ingredient 
+            JOIN ingredient ON ingredient_id = id
+            WHERE recipe_id = ?
+            """,
+            (str(recipe_id)),
         )
         return self._db_cur.fetchall()
 
-    def get_recipe(self, id):
-        self._db_cur.execute("SELECT * FROM recipe WHERE id = ?", (str(id)))
-        return self._db_cur.fetchone()
-
-    def get_recipe_by_name(self, name):
+    def get_recipe(self, name):
         self._db_cur.execute("SELECT * FROM recipe WHERE name = :name", {"name": name})
+        recipe = self._db_cur.fetchone()
+        return recipe, self.get_ingredients_for_recipe(recipe["id"])
+
+    def get_recipe_by_id(self, id):
+        self._db_cur.execute("SELECT * FROM recipe WHERE id = ?", (str(id)))
         return self._db_cur.fetchone()
 
     def get_all_recipes(self):
         self._db_cur.execute("SELECT * FROM recipe")
-        return self._db_cur.fetchall()
+        recipes = self._db_cur.fetchall()
+        return list(
+            map(lambda r: (r, self.get_ingredients_for_recipe(r["id"])), recipes)
+        )
 
     # Update
     def update_ingredient(self, id, changes):
