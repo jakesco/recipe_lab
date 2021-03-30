@@ -55,4 +55,4 @@ class RecipeLab:
 
 
 def fuzzy_name_search(search, obj_list):
-    return list(filter(lambda item: search in item.name, obj_list))
+    return list(filter(lambda item: search in item.name.lower(), obj_list))

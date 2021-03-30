@@ -69,7 +69,7 @@ class DB:
     def get_ingredients_for_recipe(self, recipe_id):
         self._db_cur.execute(
             """
-            SELECT * FROM recipe_ingredient 
+            SELECT * FROM recipe_ingredient
             JOIN ingredient ON ingredient_id = id
             WHERE recipe_id = ?
             """,
