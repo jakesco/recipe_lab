@@ -1,6 +1,6 @@
-from .db import DB
-from .recipe import Recipe
-from .ingredient import Ingredient
+from db import DB
+from recipe import Recipe
+from ingredient import Ingredient
 
 
 class RecipeLab:
@@ -53,5 +53,6 @@ class RecipeLab:
     def list_ingredients(self):
         return list(map(self.__db_to_ingredient, self.db.get_all_ingredients()))
 
-    def fuzzy_name_search(self, search, obj_list):
-        return list(filter(lambda item: search in item.name, obj_list))
+
+def fuzzy_name_search(search, obj_list):
+    return list(filter(lambda item: search in item.name, obj_list))
