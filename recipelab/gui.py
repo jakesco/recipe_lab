@@ -9,11 +9,13 @@ import core
 class RecipeLabMainWindow:
     def __init__(self, root, ingredients):
         root.title("Recipe Lab")
+        root.geometry("400x300")
+
         notebook = ttk.Notebook(root)
-        ingredient_frame = ttk.Frame(notebook, padding="3 3 12 12")
-        recipe_frame = ttk.Frame(notebook)
-        notebook.add(ingredient_frame, text="Ingredients")
-        notebook.add(recipe_frame, text="Recipes")
+        notebook.pack(padx=5, pady=5, expand=True)
+
+        ingredient_frame = ttk.Frame(notebook, width=350, height=250)
+        recipe_frame = ttk.Frame(notebook, width=350, height=250)
 
         ingredient_frame.grid(column=0, row=0, sticky=(N, S, E, W))
 
@@ -36,6 +38,9 @@ class RecipeLabMainWindow:
         search_box.focus()
 
         self.set_ingredients(ingredients)
+
+        notebook.add(ingredient_frame, text="Ingredients")
+        notebook.add(recipe_frame, text="Recipes")
 
     def set_ingredients(self, ingredients):
         self.ingredients = ingredients
