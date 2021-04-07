@@ -9,7 +9,6 @@ import core
 class RecipeLabMainWindow:
     def __init__(self, root, ingredients):
         root.title("Recipe Lab")
-        root.geometry("400x300")
 
         notebook = ttk.Notebook(root)
         notebook.pack(padx=5, pady=5, expand=True)
