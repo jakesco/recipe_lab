@@ -1,7 +1,8 @@
-from recipe import Recipe
-from ingredient import Ingredient
-from db import DB
+from .ingredient import Ingredient
+from .recipe import Recipe, IngredientAmount
+from .db import DB
 
+# TODO: Modify Recipes/Ingredients
 
 class Repository:
 
@@ -11,23 +12,83 @@ class Repository:
 
         try:
             self._db = DB(db_path)
+            self._load_data()
         except Exception:
             pass
 
     def __repr__(self):
-        return f"Repository({len(self._ingredients)} - ingredients, {self._recipes} - recipes)"
+        return f"Repository({len(self._ingredients)} - ingredients, {len(self._recipes)} - recipes)"
 
-    def
+    def _load_data(self):
+        ingredients = self._db.get_all_ingredients()
+        for i in ingredients:
+            self._ingredients.add(
+                Ingredient(
+                    i['name'],
+                    i['package_amount'],
+                    i['package_cost'],
+                    Ingredient.Type(i['type']),
+                    i['unit'],
+                    i['id']
+                )
+            )
 
-# Ingredient repo
+        recipes = self._db.get_all_recipes()
+        for r, ings in recipes:
+            ingredient_list = [
+                IngredientAmount(
+                    i['amount'],
+                    self.get_ingredient_by_id(i['ingredient_id'])
+                ) for i in ings
+            ]
+            recipe = Recipe(
+                r["name"],
+                r['servings'],
+                r['serving_unit'],
+                r['sale_price'],
+                ingredient_list,
+                r['id']
+            )
+            self._recipes.add(recipe)
 
-# Recipe repo
+    def _add_ingredient(self, ingredient):
+        self._ingredients.add(ingredient)
 
-# Store Ingredients/Recipes
+    def _add_recipe(self, recipe):
+        self._recipes.add(recipe)
 
-# Add/remove recipe
+    def add(self, item):
+        """Add an Ingredient or Recipe"""
+        if isinstance(item, Recipe):
+            self._add_recipe(item)
+        elif isinstance(item, Ingredient):
+            self._add_ingredient(item)
+        else:
+            raise Exception("Item must be a Recipe or Ingredient")
 
-# Add/remove Ingredient
+    def _remove_ingredient(self, ingredient):
+        self._ingredients.remove(ingredient)
 
-# Edit recipe/ingredient
+    def _remove_recipe(self, recipe):
+        self._recipes.remove(recipe)
 
+    def remove(self, item):
+        """Remove an Ingredient or Recipe"""
+        if isinstance(item, Recipe):
+            self._remove_recipe(item)
+        elif isinstance(item, Ingredient):
+            self._remove_ingredient(item)
+        else:
+            raise Exception("Item must be a Recipe or Ingredient")
+
+    def get_ingredient_by_id(self, id):
+        for i in self._ingredients:
+            if i.id == id:
+                return i
+            return None
+
+    def list_ingredients(self):
+        return self._ingredients
+
+    def list_recipes(self):
+        return self._recipes

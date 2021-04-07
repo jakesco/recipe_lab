@@ -3,7 +3,7 @@ from tkinter import ttk
 from tkinter import N, S, E, W
 
 from ingredient import Ingredient
-import core
+import recipelab
 
 
 class RecipeLabMainWindow:
@@ -65,7 +65,7 @@ class RecipeLabMainWindow:
                 self.tree.detach(i.name)
 
     def narrow_list(self, *args):
-        result = core.fuzzy_name_search(self.search.get(), self.ingredients)
+        result = recipelab.fuzzy_name_search(self.search.get(), self.ingredients)
         self.refresh_ingredients_list(result)
 
 

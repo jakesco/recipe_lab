@@ -33,7 +33,7 @@ class DB:
                 (recipe_id, ingredient_id, amount),
             )
 
-    def insert_recipe(self, name, servings, serving_unit, sale_price, ingredients):
+    def insert_recipe(self, name, servings, serving_unit, sale_price, ingredients_list):
         with self._db_conn:
             self._db_cur.execute(
                 "INSERT INTO recipe VALUES (?, ?, ?, ?, ?)",
@@ -44,7 +44,7 @@ class DB:
         self._db_cur.execute("SELECT id FROM recipe WHERE name = :name", {"name": name})
         recipe_id = self._db_cur.fetchone()[0]
 
-        for amount, ingredient in ingredients:
+        for amount, ingredient in ingredients_list:
             self.insert_recipe_ingredients(recipe_id, ingredient.id, amount)
 
         recipe = self.get_recipe_by_name(name)
@@ -89,9 +89,7 @@ class DB:
     def get_all_recipes(self):
         self._db_cur.execute("SELECT * FROM recipe")
         recipes = self._db_cur.fetchall()
-        return list(
-            map(lambda r: (r, self.get_ingredients_for_recipe(r["id"])), recipes)
-        )
+        return [(r, self.get_ingredients_for_recipe(r["id"])) for r in recipes]
 
     # Update
     def update_ingredient(self, id, changes):

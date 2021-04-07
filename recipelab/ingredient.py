@@ -40,7 +40,8 @@ class Ingredient:
             raise Exception("Ingredient type must be of Ingredient.Type")
 
     def __repr__(self):
-        return "Ingredient({}, {}, {} {}(s), ${:.2f}, ${:.2f} per {})".format(
+        return "Ingredient({} - {}, {}, {} {}(s), ${:.2f}, ${:.2f} per {})".format(
+            self.id,
             self.name,
             self.type,
             self.package_amount,
