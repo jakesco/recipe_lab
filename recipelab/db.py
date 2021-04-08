@@ -24,7 +24,7 @@ class DB:
                 "INSERT INTO ingredient VALUES (?, ?, ?, ?, ?, ?)",
                 (None, name, package_amount, package_cost, type_value, unit),
             )
-        return self.get_ingredient_by_name(name)
+        return self.get_ingredient_by_name(name)["id"]
 
     def insert_recipe_ingredient(self, recipe_id, ingredient_id, amount):
         with self._db_conn:

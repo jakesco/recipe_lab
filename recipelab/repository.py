@@ -51,26 +51,25 @@ class Repository:
             )
             self._recipes.add(recipe)
 
-    def _add_ingredient(self, ingredient):
+    def add_ingredient(self, name, package_amount, package_cost, ingredient_type_number, unit):
+        ingredient = Ingredient(name, package_amount, package_cost, Ingredient.Type(ingredient_type_number), unit)
+        ingredient.id = self._db.insert_ingredient(ingredient.name,
+                                                   ingredient.package_amount,
+                                                   ingredient.package_cost,
+                                                   ingredient.type.value,
+                                                   ingredient.unit)
         self._ingredients.add(ingredient)
 
-    def _add_recipe(self, recipe):
+    def add_recipe(self, recipe):
         self._recipes.add(recipe)
-
-    def add(self, item):
-        """Add an Ingredient or Recipe"""
-        if isinstance(item, Recipe):
-            self._add_recipe(item)
-        elif isinstance(item, Ingredient):
-            self._add_ingredient(item)
-        else:
-            raise Exception("Item must be a Recipe or Ingredient")
 
     def _remove_ingredient(self, ingredient):
         self._ingredients.remove(ingredient)
+        self._db.delete_ingredient(ingredient.id)
 
     def _remove_recipe(self, recipe):
         self._recipes.remove(recipe)
+        self._db.delete_recipe(recipe.id)
 
     def remove(self, item):
         """Remove an Ingredient or Recipe"""
@@ -85,10 +84,17 @@ class Repository:
         for i in self._ingredients:
             if i.id == id:
                 return i
-            return None
+        return None
+
+    def get_recipe_by_id(self, id):
+        for r in self._ingredients:
+            if r.id == id:
+                return r
+        return None
 
     def list_ingredients(self):
         return self._ingredients
 
     def list_recipes(self):
         return self._recipes
+
