@@ -1,0 +1,3 @@
+packaging==20.9
+Pint==0.17
+pyparsing==2.4.7

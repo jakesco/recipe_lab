@@ -14,11 +14,11 @@ class MainWindow(tk.Tk):
         notebook = ttk.Notebook(self)
         notebook.pack(padx=5, pady=5, expand=True)
 
-        ingredient_frame = IngredientListFrame(notebook, repository)
         recipe_frame = RecipeListFrame(notebook, repository)
+        ingredient_frame = IngredientListFrame(notebook, repository)
 
-        notebook.add(ingredient_frame, text="Ingredients")
         notebook.add(recipe_frame, text="Recipes")
+        notebook.add(ingredient_frame, text="Ingredient List")
 
 
 class IngredientListFrame(ttk.Frame):
@@ -166,10 +166,13 @@ class RecipeListFrame(ttk.Frame):
         search_box.grid(column=0, row=0, sticky=(N, W))
         self.search.trace_add("write", self.fuzzy_name_search)
 
+        new_ingredient_btn = ttk.Button(self, text="New Recipe", command=self.spawn_new_recipe_window)
+        new_ingredient_btn.grid(column=1, row=0, sticky=E)
+
         self.tree = ttk.Treeview(
             self, columns=("servings", "cost", "sale_price", "profit")
         )
-        self.tree.grid(column=0, row=1, sticky=(N, W))
+        self.tree.grid(column=0, row=1, columnspan=2, sticky=(N, W))
         self.tree.heading("#0", text="Name")  # Set first column name
         self.tree.heading("servings", text="Servings")
         self.tree.heading("cost", text="Cost")
@@ -211,3 +214,66 @@ class RecipeListFrame(ttk.Frame):
                 self.tree.move(r.name, "", "end")
             else:
                 self.tree.detach(r.name)
+
+    def spawn_new_recipe_window(self):
+        NewRecipeWindow(self, self.repo)
+
+
+class NewRecipeWindow(tk.Toplevel):
+    def __init__(self, parent, repository):
+        tk.Toplevel.__init__(self, parent)
+        self.title("Recipe Lab - New Recipe")
+        self.parent = parent
+        self.repo = repository
+
+        # Name Entry
+        self.name = tk.StringVar()
+        name_box_label = ttk.Label(self, text="Name:")
+        name_box_label.grid(column=0, row=0, sticky=(N, W))
+        name_box = ttk.Entry(self, width=20, textvariable=self.name)
+        name_box.grid(column=1, row=0, sticky=(N, W))
+
+        # Type Combobox
+        self.type = tk.StringVar()
+        ttk.Label(self, text="Type:").grid(column=0, row=1, sticky=(N, W))
+        ttk.Radiobutton(self, text='DRY', variable=self.type, value=1, command=self.disable_unit_entry).grid(column=1, row=1, sticky=W)
+        ttk.Radiobutton(self, text='FLUID', variable=self.type, value=2, command=self.disable_unit_entry).grid(column=1, row=1, sticky=E)
+        ttk.Radiobutton(self, text='OTHER', variable=self.type, value=3, command=self.enable_unit_entry).grid(column=2, row=1, sticky=E)
+
+        # Measurement unit Entry
+        self.unit = tk.StringVar()
+        self.unit_entry = ttk.Entry(self, width=10, textvariable=self.unit)
+        self.unit_entry.grid(column=3, row=1, sticky=W)
+
+        self.type.set(1)
+        self.disable_unit_entry()
+
+        # Amount in package Entry
+        self.package_amount = tk.StringVar()
+        ttk.Label(self, text="Amount in package:").grid(column=0, row=2, sticky=(N, W))
+        package_amount_box = ttk.Entry(self, width=20, textvariable=self.package_amount)
+        package_amount_box.grid(column=1, row=2, sticky=(N, W))
+
+        # Cost per package
+        self.package_cost = tk.StringVar()
+        ttk.Label(self, text="Cost of package:").grid(column=0, row=3, sticky=(N, W))
+        package_cost_box = ttk.Entry(self, width=20, textvariable=self.package_cost)
+        package_cost_box.grid(column=1, row=3, sticky=(N, W))
+
+        # Submit
+        self.submit_btn = ttk.Button(self, text="Add", command=self.create_ingredient)
+        self.submit_btn.grid(column=3, row=4, sticky=E)
+
+        name_box.focus()
+
+    def create_recipe(self):
+        self.submit_btn['state'] = 'disabled'
+        self.repo.add_ingredient(
+            self.name.get(),
+            self.package_amount.get(),
+            self.package_cost.get(),
+            int(self.type.get()),
+            self.unit.get() if self.type.get() == "3" else None
+        )
+        self.submit_btn['state'] = 'normal'
+        self.parent.refresh()

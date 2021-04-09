@@ -1,63 +1,71 @@
 from enum import Enum
+from . import ureg, Q_, UndefinedUnitError
 
 
 class Ingredient:
-    class Type(Enum):
-        DRY = 1
-        FLUID = 2
-        OTHER = 3
+    def __init__(self, ingredient_id: int, name: str, package_amount: float, unit: str, package_cost: float):
+        self.__id = ingredient_id
+        self.__name = name
 
-    def __init__(self, name, package_amount, package_cost, ingredient_type, unit=None, ingredient_id=None):
-        self.id = ingredient_id
-        self.name = name
         try:
-            self.package_amount = float(package_amount)
+            amount = float(package_amount)
+            if amount <= 0:
+                raise Exception("Package amount must not be less than 0.")
+            self.__amount = Q_(amount, unit)
         except ValueError:
             raise Exception("Package amount must be a number.")
+        except UndefinedUnitError:
+            # This is a hack, custom values are defined as nits.
+            # It prevents conversions to other types assuming no need
+            # to calculate the luminance of any food.
+            ureg.define(f"{unit} = 1 nit")
+            self.__amount = Q_(package_amount, unit)
 
         try:
-            self.package_cost = float(package_cost)
+            cost = float(package_cost)
+            if cost <= 0:
+                raise Exception("Package cost must not be less than 0.")
+            self.__cost = float(package_cost)
         except ValueError:
             raise Exception("Package cost must be a number.")
 
-        if self.package_amount <= 0:
-            raise Exception("Package amount must not be less than 0.")
 
-        if self.package_cost <= 0:
-            raise Exception("Package cost must not be less than 0.")
+    @property
+    def id(self):
+        return self.__id
 
-        self.cost_per_unit = self.package_cost / self.package_amount
+    @property
+    def name(self):
+        return self.__name
 
-        if isinstance(ingredient_type, self.Type):
-            self.type = ingredient_type
-            if ingredient_type == self.Type.DRY:
-                self.unit = "oz"
-            elif ingredient_type == self.Type.FLUID:
-                self.unit = "fl. oz"
-            else:
-                self.unit = unit
-        else:
-            raise Exception("Ingredient type must be of Ingredient.Type")
+    @property
+    def amount_in_package(self):
+        return self.__amount
+
+    @property
+    def cost_of_package(self):
+        return self.__cost
+
+    def cost_per_unit(self, unit: str = None) -> float:
+        if unit is None:
+            return self.__cost / self.__amount.magnitude
+        return self.__cost / self.__amount.to(unit).magnitude
 
     def __repr__(self):
-        return "Ingredient({} - {}, {}, {} {}(s), ${:.2f}, ${:.2f} per {})".format(
-            self.id,
-            self.name,
-            self.type,
-            self.package_amount,
-            self.unit,
-            self.package_cost,
-            self.cost_per_unit,
-            self.unit,
+        return "Ingredient({} - {}, {:~}(s), ${:.2f})".format(
+            self.__id,
+            self.__name,
+            self.__amount,
+            self.__cost,
         )
 
     def __hash__(self):
-        return hash((self.name, self.package_amount, self.package_cost, self.type))
+        return hash((self.__id, self.__name, self.__amount, self.__cost))
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):
-            return False
-        return (self.name == other.name
-                and self.package_amount == other.package_amount
-                and self.package_cost == other.package_cost
-                and self.type == other.type)
+            return NotImplemented
+        return (self.__id == other.id
+                and self.__name == other.name
+                and self.__amount == other.amount_in_package
+                and self.__cost == other.cost_of_package)
