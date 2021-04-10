@@ -1,5 +1,5 @@
-from enum import Enum
-from . import ureg, Q_, UndefinedUnitError
+from recipelab import log
+from recipelab import unit_registry, Q_, UndefinedUnitError, DimensionalityError
 
 
 class Ingredient:
@@ -10,25 +10,31 @@ class Ingredient:
         try:
             amount = float(package_amount)
             if amount <= 0:
-                raise Exception("Package amount must not be less than 0.")
+                log.exception(f"Package amount ({amount}) must be positive.")
+                raise PackageAmountNotPositive()
             self.__amount = Q_(amount, unit)
         except ValueError:
-            raise Exception("Package amount must be a number.")
+            log.exception(f"Package amount ({package_amount}) must be a number.")
+            raise PackageAmountNotNumber()
         except UndefinedUnitError:
             # This is a hack, custom values are defined as nits.
             # It prevents conversions to other types assuming no need
             # to calculate the luminance of any food.
-            ureg.define(f"{unit} = 1 nit")
+            unit_registry.define(f"{unit} = 1 nit")
             self.__amount = Q_(package_amount, unit)
+            log.info(f"New unit {unit} added to unit registry.")
 
         try:
             cost = float(package_cost)
             if cost <= 0:
-                raise Exception("Package cost must not be less than 0.")
+                log.error(f"Package amount ({cost}) must be positive.")
+                raise PackageCostNotPositive()
             self.__cost = float(package_cost)
         except ValueError:
-            raise Exception("Package cost must be a number.")
+            log.error(f"Package amount ({package_cost}) must be a number.")
+            raise PackageCostNotNumber()
 
+        log.debug(f"New ingredient created: {self}.")
 
     @property
     def id(self):
@@ -49,7 +55,12 @@ class Ingredient:
     def cost_per_unit(self, unit: str = None) -> float:
         if unit is None:
             return self.__cost / self.__amount.magnitude
-        return self.__cost / self.__amount.to(unit).magnitude
+        try:
+            return self.__cost / self.__amount.to(unit).magnitude
+        except DimensionalityError:
+            log.error(f"Failed to convert ({self.__amount.units} -> {unit}).")
+            raise IncompatibleUnitConversion(f"{self.__amount.units} -> {unit}")
+
 
     def __repr__(self):
         return "Ingredient({} - {}, {:~}(s), ${:.2f})".format(
@@ -69,3 +80,23 @@ class Ingredient:
                 and self.__name == other.name
                 and self.__amount == other.amount_in_package
                 and self.__cost == other.cost_of_package)
+
+
+class PackageAmountNotPositive(Exception):
+    pass
+
+
+class PackageAmountNotNumber(Exception):
+    pass
+
+
+class PackageCostNotPositive(Exception):
+    pass
+
+
+class PackageCostNotNumber(Exception):
+    pass
+
+
+class IncompatibleUnitConversion(Exception):
+    pass

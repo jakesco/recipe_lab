@@ -17,7 +17,8 @@ class TestIngredient(unittest.TestCase):
 
     def test_ingredient_cost_less_than_equal_zero(self):
         x = Ingredient(2, "Test Ingredient", 10, 'cookie', 20.00)
-        print(x.cost_per_unit('tsp'))
+        with self.assertRaises(Exception):
+            print(x.cost_per_unit('tsp'))
 
     def test_ingredient_amount_not_number(self):
         pass

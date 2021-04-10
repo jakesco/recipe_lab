@@ -1,75 +1,119 @@
+from recipelab import log
+from recipelab import unit_registry, Q_, UndefinedUnitError
+from recipelab.ingredient import Ingredient, IncompatibleUnitConversion
 from collections import namedtuple
 
-IngredientAmount = namedtuple("IngredientAmount", "amount, ingredient")
+RecipeIngredient = namedtuple('RecipeIngredient', ["amount", "ingredient"])
 
 
 class Recipe:
-    def __init__(self, name, servings, serving_unit, sale_price, ingredients_list=None, recipe_id=None):
-        self.id = recipe_id
+    def __init__(self,
+                 recipe_id: int,
+                 name: str,
+                 servings: float,
+                 serving_unit: str,
+                 sale_price: str,
+                 ingredients_list: list[RecipeIngredient] = None):
+        self.__id = recipe_id
         self.name = name
 
         try:
-            self.servings = float(servings)
+            serv = float(servings)
+            if serv <= 0:
+                log.error("Recipe servings must be positive.")
+                raise ServingsNotPositive()
+            self.servings = Q_(serv, serving_unit)
         except ValueError:
-            raise Exception("Servings must be a number.")
-
-        if self.servings <= 0:
-            raise Exception("Servings must be greater than 0.")
-
-        self.serving_unit = serving_unit
+            log.error("Recipe servings not a number.")
+            raise ServingsAmountNotNumber()
+        except UndefinedUnitError:
+            # This is a hack, custom values are defined as nits.
+            # It prevents conversions to other types assuming no need
+            # to calculate the luminance of any food.
+            unit_registry.define(f"{serving_unit} = 1 nit")
+            self.servings = Q_(servings, serving_unit)
+            log.info(f"New unit {serving_unit} added to unit registry.")
 
         try:
-            self.sale_price = float(sale_price)
+            price = float(sale_price)
+            if price <= 0:
+                log.error("Sale price must be positive.")
+                raise SalePriceNotPositive()
+            self.sale_price = price
         except ValueError:
-            raise Exception("Sale price must be a number.")
-
-        if self.sale_price <= 0:
-            raise Exception("Sale price must be greater than 0.")
+            log.error("Sale price must be a number.")
+            raise SalePriceNotNumber()
 
         # the ingredients are IngredientAmount named tuples
         if ingredients_list is None:
-            self.ingredients = []
+            self.__ingredients = []
         else:
-            if False in [isinstance(i, IngredientAmount) for i in ingredients_list]:
-                raise Exception("Ingredient list must be of type [IngredientAmount]")
-            self.ingredients = ingredients_list
+            if False in [isinstance(i, RecipeIngredient) for i in ingredients_list]:
+                raise IngredientListComposedOfIncorrectType()
+            self.__ingredients = ingredients_list
+
+    @property
+    def id(self):
+        return self.__id
+
+    @property
+    def ingredients(self):
+        return self.__ingredients
 
     def __repr__(self):
-        return "Recipe({} - {}, {} {}, ${:.2f}, {} ingredients)".format(
-            self.id,
+        return "Recipe({} - {}, {:~}, ${:.2f}, {} ingredients)".format(
+            self.__id,
             self.name,
             self.servings,
-            self.serving_unit,
             self.sale_price,
-            len(self.ingredients)
+            len(self.__ingredients)
         )
 
-    def __hash__(self):
-        return hash((self.name, self.servings, self.serving_unit, self.sale_price, len(self.ingredients)))
+    def add_ingredient(self, amount: float, unit: str, ingredient: Ingredient):
+        try:
+            ingredient.cost_per_unit(unit)
+            ingredient_amount = RecipeIngredient(Q_(amount, unit), ingredient)
+            if ingredient_amount not in self.__ingredients:
+                self.__ingredients.append(ingredient_amount)
+                log.info(f"{ingredient_amount} added to {self.name}.")
+        except IncompatibleUnitConversion as e:
+            log.error(f"{unit} is not compatible with {ingredient.amount_in_package.units}.")
+            raise e
+        except UndefinedUnitError as e:
+            log.error(f"{unit} is not a valid unit.")
+            raise e
 
-    def __eq__(self, other):
-        if not isinstance(other, type(self)):
-            return False
-        return (self.name == other.name
-                and self.servings == other.servings
-                and self.serving_unit == other.serving_unit
-                and self.sale_price == other.sale_price
-                and self.ingredients == other.ingredients)
+    def remove_ingredient(self, amount: float, unit: str, ingredient: Ingredient):
+        # TODO: revisit this (may want to just pass index as argument)
+        ingredient_amount = RecipeIngredient(Q_(amount, unit), ingredient)
+        self.__ingredients = [i for i in self.__ingredients if i != ingredient_amount]
+        log.info(f"{ingredient_amount} removed from {self.name}")
 
-    def add_ingredient(self, amount, ingredient):
-        ingredient_amount = IngredientAmount(amount, ingredient)
-        if ingredient_amount not in self.ingredients:
-            self.ingredients.append(ingredient_amount)
+    def cost(self) -> float:
+        sum([i.amount.magnitude * i.ingredient.cost_per_unit(i.amount.units) for i in self.__ingredients])
 
-    def remove_ingredient(self, amount, ingredient):
-        ingredient_amount = IngredientAmount(amount, ingredient)
-        self.ingredients = [i for i in self.ingredients if i != ingredient_amount]
+    def cost_per_serving(self) -> float:
+        return self.cost() / self.servings.magnitude
 
-    def cost(self):
-        return sum([i.amount * i.ingredient.cost_per_unit for i in self.ingredients])
-
-    def cost_per_serving(self):
-        return self.cost() / self.servings
-
-    def profit(self):
+    def profit(self) -> float:
         return self.sale_price - self.cost()
+
+
+class ServingsNotPositive(Exception):
+    pass
+
+
+class ServingsAmountNotNumber(Exception):
+    pass
+
+
+class SalePriceNotPositive(Exception):
+    pass
+
+
+class SalePriceNotNumber(Exception):
+    pass
+
+
+class IngredientListComposedOfIncorrectType(Exception):
+    pass

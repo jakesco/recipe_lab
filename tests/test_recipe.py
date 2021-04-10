@@ -6,14 +6,14 @@ from recipelab.recipe import Recipe, IngredientAmount
 class TestRecipe(unittest.TestCase):
     def test_no_ingredients(self):
         r = Recipe("test recipe", 10, 1, 10)
-        self.assertEqual(r.ingredients, [])
+        self.assertEqual(r.__ingredients, [])
 
     def test_with_ingredients_list(self):
         i1 = Ingredient("test ingredient 1", 10, 10, Ingredient.Type.DRY)
         i2 = Ingredient("test ingredient 2", 10, 10, Ingredient.Type.DRY)
         ingredient_list = [IngredientAmount(10, i1), IngredientAmount(20, i2)]
         r = Recipe("test recipe", 10, 1, 10, ingredient_list)
-        self.assertEqual(r.ingredients, ingredient_list)
+        self.assertEqual(r.__ingredients, ingredient_list)
 
     def test_with_bad_ingredients_list(self):
         with self.assertRaises(Exception):
@@ -44,9 +44,9 @@ class TestRecipe(unittest.TestCase):
         r = Recipe("test recipe", 1, "plate", 20.00)
         i = Ingredient("Test Ingredient", 1, 1, Ingredient.Type.DRY)
         r.add_ingredient(10, i)
-        self.assertIsInstance(r.ingredients[0], IngredientAmount)
-        self.assertEqual(r.ingredients[0].ingredient, i)
-        self.assertEqual(r.ingredients[0].amount, 10)
+        self.assertIsInstance(r.__ingredients[0], IngredientAmount)
+        self.assertEqual(r.__ingredients[0].ingredient, i)
+        self.assertEqual(r.__ingredients[0].amount, 10)
 
     def test_add_same_ingredient(self):
         r = Recipe("test recipe", 1, "plate", 20.00)
@@ -54,15 +54,15 @@ class TestRecipe(unittest.TestCase):
         i2 = Ingredient("Test Ingredient", 1, 1, Ingredient.Type.DRY)
         r.add_ingredient(10, i1)
         r.add_ingredient(10, i2)
-        self.assertEqual(len(r.ingredients), 1)
+        self.assertEqual(len(r.__ingredients), 1)
 
     def test_remove_ingredient(self):
         i1 = Ingredient("Test Ingredient", 1, 1, Ingredient.Type.DRY)
         i2 = Ingredient("Test Ingredient", 1, 1, Ingredient.Type.DRY)
         r = Recipe("test recipe", 1, "plate", 20.00, [IngredientAmount(10, i1), IngredientAmount(20, i2)])
         r.remove_ingredient(10, i1)
-        self.assertEqual(r.ingredients[0].ingredient, i2)
-        self.assertEqual(r.ingredients[0].amount, 20)
+        self.assertEqual(r.__ingredients[0].ingredient, i2)
+        self.assertEqual(r.__ingredients[0].amount, 20)
 
     def test_cost(self):
         i1 = Ingredient("Test Ingredient", 1, 1, Ingredient.Type.DRY)
