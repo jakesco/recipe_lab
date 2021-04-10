@@ -60,8 +60,8 @@ class IngredientListFrame(ttk.Frame):
             self.tree.insert(
                 "",
                 "end",
-                i.name,
-                text=i.name,
+                i.__name,
+                text=i.__name,
                 values=(
                     f"{i.package_amount:.1f} {i.unit}(s)",
                     f"${i.package_cost:.2f}",
@@ -73,13 +73,13 @@ class IngredientListFrame(ttk.Frame):
         """Narrows recipe list from search box"""
         search_term = self.search.get().lower()
         ingredients = self.repo.list_ingredients()
-        result = [i.name for i in ingredients if search_term in i.name.lower()]
+        result = [i.__name for i in ingredients if search_term in i.__name.lower()]
         for i in ingredients:
-            if i.name in result:
+            if i.__name in result:
                 # This will put detached names back in the list
-                self.tree.move(i.name, "", "end")
+                self.tree.move(i.__name, "", "end")
             else:
-                self.tree.detach(i.name)
+                self.tree.detach(i.__name)
 
     def spawn_new_ingredient_window(self):
         NewIngredientWindow(self, self.repo)
@@ -193,8 +193,8 @@ class RecipeListFrame(ttk.Frame):
             self.tree.insert(
                 "",
                 "end",
-                r.name,
-                text=r.name,
+                r.__name,
+                text=r.__name,
                 values=(
                     f"{r.servings:.0f} {r.serving_unit}(s)",
                     f"${r.cost():.2f} ({r.cost_per_serving():.2f} per {r.serving_unit})",
@@ -207,13 +207,13 @@ class RecipeListFrame(ttk.Frame):
         """Narrows recipe list from search box"""
         search_term = self.search.get().lower()
         recipes = self.repo.list_recipes()
-        result = [r.name for r in recipes if search_term in r.name.lower()]
+        result = [r.__name for r in recipes if search_term in r.__name.lower()]
         for r in recipes:
-            if r.name in result:
+            if r.__name in result:
                 # This will put detached names back in the list
-                self.tree.move(r.name, "", "end")
+                self.tree.move(r.__name, "", "end")
             else:
-                self.tree.detach(r.name)
+                self.tree.detach(r.__name)
 
     def spawn_new_recipe_window(self):
         NewRecipeWindow(self, self.repo)

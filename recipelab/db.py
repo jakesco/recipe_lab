@@ -1,14 +1,22 @@
 import sqlite3
 import os
+from recipelab import log
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 
 class DB:
-    def __init__(self, db_path):
+    def __init__(self, db_path: str):
         self._db_conn = sqlite3.connect(db_path)
         self._db_conn.row_factory = sqlite3.Row
         self._db_cur = self._db_conn.cursor()
+
+        # Check if db needs to be initialized
+        self._db_cur.execute("SELECT count(name) FROM sqlite_master WHERE type='table'")
+        if self._db_cur.fetchone()['count(name)'] == 0:
+            #log.info("Initializing DB.")
+            self.init_db()
+
 
     def __del__(self):
         self._db_conn.close()
@@ -18,151 +26,96 @@ class DB:
             self._db_cur.executescript(f.read())
 
     # Create
-    def insert_ingredient(self, name, package_amount, package_cost, type_value, unit):
+    def insert_ingredient(self, name: str, amount: float, unit: str, cost: float):
         with self._db_conn:
             self._db_cur.execute(
-                "INSERT INTO ingredient VALUES (?, ?, ?, ?, ?, ?)",
-                (None, name, package_amount, package_cost, type_value, unit),
+                "INSERT INTO ingredient VALUES (?, ?, ?, ?, ?)",
+                (None, name, amount, unit, cost),
             )
-        return self.get_ingredient_by_name(name)["id"]
 
-    def insert_recipe_ingredient(self, recipe_id, ingredient_id, amount):
+        # Get assigned id
+        self._db_cur.execute("SELECT id FROM ingredient WHERE name = :name", {"name": name})
+        ingredient_id = self._db_cur.fetchone()['id']
+
+        log.info(f"Ingredient ({ingredient_id} - {name}) added to database.")
+        return ingredient_id
+
+    def insert_recipe_ingredient(self, recipe_id: int, ingredient_id: int, amount: float, unit: str):
         with self._db_conn:
             self._db_cur.execute(
-                "INSERT INTO recipe_ingredient VALUES (?, ?, ?)",
-                (recipe_id, ingredient_id, amount),
+                "INSERT INTO recipe_ingredient VALUES (?, ?, ?, ?)",
+                (recipe_id, ingredient_id, amount, unit),
             )
 
-    def insert_recipe(self, name, servings, serving_unit, sale_price, ingredients_list):
+    def insert_recipe(self,
+                      name: str,
+                      servings: float,
+                      sale_price: float,
+                      serving_unit: str = None,
+                      ingredients_list: list[tuple[int, float, str]] = None):
         with self._db_conn:
             self._db_cur.execute(
                 "INSERT INTO recipe VALUES (?, ?, ?, ?, ?)",
                 (None, name, servings, serving_unit, sale_price),
             )
 
-        # Database may assign a different id, this ensures we have the correct id
+        # Get assigned id
         self._db_cur.execute("SELECT id FROM recipe WHERE name = :name", {"name": name})
-        recipe_id = self._db_cur.fetchone()[0]
+        recipe_id = self._db_cur.fetchone()['id']
 
-        for amount, ingredient in ingredients_list:
-            self.insert_recipe_ingredients(recipe_id, ingredient.id, amount)
+        if ingredients_list is not None:
+            for ingredient_id, amount, unit in ingredients_list:
+                self.insert_recipe_ingredient(recipe_id, ingredient_id, amount, unit)
 
-        recipe = self.get_recipe_by_name(name)
-
-        return (recipe, self.get_ingredients_for_recipe(recipe["id"]))
+        log.info(f"Ingredient ({recipe_id} - {name}) added to database.")
+        return recipe_id
 
     # Retrieve
-    def get_ingredient(self, id):
-        self._db_cur.execute("SELECT * FROM ingredient WHERE id = ?", (str(id)))
-        return self._db_cur.fetchone()
+    def get_ingredients(self, ids: tuple[int, ...]) -> list[dict]:
+        sql = 'SELECT * FROM ingredient WHERE id IN (%s)' % ', '.join('?' for _ in ids)
+        self._db_cur.execute(sql, ids)
+        return [dict(i) for i in self._db_cur.fetchall()]
 
-    def get_ingredient_by_name(self, name):
-        self._db_cur.execute(
-            "SELECT * FROM ingredient WHERE name = :name", {"name": name}
-        )
-        return self._db_cur.fetchone()
-
-    def get_all_ingredients(self):
+    def get_all_ingredients(self) -> list[dict]:
         self._db_cur.execute("SELECT * FROM ingredient")
-        return self._db_cur.fetchall()
+        return [dict(i) for i in self._db_cur.fetchall()]
 
-    def get_ingredients_for_recipe(self, recipe_id):
-        self._db_cur.execute(
-            """
-            SELECT * FROM recipe_ingredient
-            JOIN ingredient ON ingredient_id = id
-            WHERE recipe_id = ?
-            """,
-            (str(recipe_id)),
-        )
-        return self._db_cur.fetchall()
+    def get_ingredients_for_recipe(self, recipe_id: int) -> list[dict]:
+        self._db_cur.execute("SELECT ingredient_id as id, amount, unit FROM recipe_ingredient WHERE recipe_id = ?", (recipe_id,))
+        return [dict(ri) for ri in self._db_cur.fetchall()]
 
-    def get_recipe(self, name):
-        self._db_cur.execute("SELECT * FROM recipe WHERE name = :name", {"name": name})
-        recipe = self._db_cur.fetchone()
-        return recipe, self.get_ingredients_for_recipe(recipe["id"])
+    def get_recipes(self, ids: tuple[int, ...]) -> list[dict]:
+        sql = 'SELECT * FROM recipe WHERE id IN (%s)' % ', '.join('?' for _ in ids)
+        self._db_cur.execute(sql, ids)
+        recipes = [dict(r) for r in self._db_cur.fetchall()]
+        for r in recipes:
+            r['ingredients'] = self.get_ingredients_for_recipe(r['id'])
+        return recipes
 
-    def get_recipe_by_id(self, id):
-        self._db_cur.execute("SELECT * FROM recipe WHERE id = ?", (str(id)))
-        return self._db_cur.fetchone()
-
-    def get_all_recipes(self):
+    def get_all_recipes(self) -> list[dict]:
         self._db_cur.execute("SELECT * FROM recipe")
         recipes = self._db_cur.fetchall()
-        return [(r, self.get_ingredients_for_recipe(r["id"])) for r in recipes]
+        for r in recipes:
+            r['ingredients'] = self.get_ingredients_for_recipe(r['id'])
+        return recipes
 
-    # Update
-    def update_ingredient(self, id, changes):
-
-        to_change = changes.keys()
-        # TODO: make this error better
-        if "id" in to_change:
-            print("ID cannot be changed")
-            return
-        if "type" in to_change:
-            type_number = changes["type"].value
-            changes["type"] = type_number
-
-        self._db_cur.execute("SELECT * FROM ingredient WHERE id = ?", (str(id)))
-        values = dict(self._db_cur.fetchone())
-        values.update(changes)
-
-        with self._db_conn:
-            self._db_cur.execute(
-                """
-                UPDATE ingredient
-                SET name = :name,
-                package_amount = :package_amount,
-                package_cost = :package_cost,
-                type = :type,
-                unit = :unit
-                WHERE id = :id
-                """,
-                values,
-            )
-
-    def update_recipe(self, id, changes):
-        to_change = changes.keys()
-        # TODO: make this error better
-        if "id" in to_change:
-            print("ID cannot be changed")
-            return
-        if "ingredients" in to_change:
-            with self._db_conn:
-                self._db_cur.execute(
-                    "DELETE FROM recipe_ingredient WHERE recipe_id = ?", (str(id))
-                )
-            self.insert_recipe_ingredients(id, changes["ingredients"])
-            del changes["ingredients"]
-
-        self._db_cur.execute("SELECT * FROM recipe WHERE id = ?", (str(id)))
-        values = dict(self._db_cur.fetchone())
-        values.update(changes)
-
-        with self._db_conn:
-            self._db_cur.execute(
-                """
-                UPDATE recipe
-                SET name = :name,
-                servings = :servings,
-                serving_unit = :serving_unit,
-                sale_price = :sale_price
-                WHERE id = :id
-                """,
-                values,
-            )
+    # TODO: Update
 
     # Delete
-    def delete_ingredient(self, id):
+    def delete_ingredients(self, ids: tuple[int, ...]):
         with self._db_conn:
-            self._db_cur.execute(
-                "DELETE FROM recipe_ingredient WHERE ingredient_id = ?", (str(id))
-            )
-            self._db_cur.execute("DELETE FROM ingredient WHERE id = ?", (str(id)))
+            for i in ids:
+                self._db_cur.execute(
+                    "DELETE FROM recipe_ingredient WHERE ingredient_id = ?", (i,)
+                )
+                self._db_cur.execute("DELETE FROM ingredient WHERE id = ?", (i,))
+        log.info(f"Ingredient id({id}) removed from database.")
 
-    def delete_recipe(self, id):
+    def delete_recipes(self, ids: tuple[int, ...]):
         with self._db_conn:
-            self._db_cur.execute(
-                "DELETE FROM recipe_ingredient WHERE recipe_id = ?", (str(id))
-            )
-            self._db_cur.execute("DELETE FROM recipe WHERE id = ?", (str(id)))
+            for r in ids:
+                self._db_cur.execute(
+                    "DELETE FROM recipe_ingredient WHERE recipe_id = ?", (r,)
+                )
+                self._db_cur.execute("DELETE FROM recipe WHERE id = ?", (r,))
+        log.info(f"Recipe id({id}) removed from database.")

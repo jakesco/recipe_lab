@@ -53,7 +53,7 @@ class Repository:
 
     def add_ingredient(self, name, package_amount, package_cost, ingredient_type_number, unit):
         ingredient = Ingredient(name, package_amount, package_cost, Ingredient.Type(ingredient_type_number), unit)
-        ingredient.id = self._db.insert_ingredient(ingredient.name,
+        ingredient.id = self._db.insert_ingredient(ingredient.__name,
                                                    ingredient.package_amount,
                                                    ingredient.package_cost,
                                                    ingredient.type.value,
