@@ -17,7 +17,6 @@ class DB:
             #log.info("Initializing DB.")
             self.init_db()
 
-
     def __del__(self):
         self._db_conn.close()
 
@@ -94,7 +93,7 @@ class DB:
 
     def get_all_recipes(self) -> list[dict]:
         self._db_cur.execute("SELECT * FROM recipe")
-        recipes = self._db_cur.fetchall()
+        recipes = [dict(r) for r in self._db_cur.fetchall()]
         for r in recipes:
             r['ingredients'] = self.get_ingredients_for_recipe(r['id'])
         return recipes

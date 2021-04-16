@@ -56,7 +56,7 @@ class IngredientListFrame(ttk.Frame):
     def refresh(self):
         """Sets initial ingredients in list"""
         self.tree.delete(*self.tree.get_children())
-        for i in self.repo.list_ingredients():
+        for i in self.repo.all_ingredients():
             self.tree.insert(
                 "",
                 "end",
@@ -72,7 +72,7 @@ class IngredientListFrame(ttk.Frame):
     def fuzzy_name_search(self, *args):
         """Narrows recipe list from search box"""
         search_term = self.search.get().lower()
-        ingredients = self.repo.list_ingredients()
+        ingredients = self.repo.all_ingredients()
         result = [i.__name for i in ingredients if search_term in i.__name.lower()]
         for i in ingredients:
             if i.__name in result:
@@ -189,7 +189,7 @@ class RecipeListFrame(ttk.Frame):
 
     def refresh(self):
         """Sets initial ingredients in list"""
-        for r in self.repo.list_recipes():
+        for r in self.repo.all_recipes():
             self.tree.insert(
                 "",
                 "end",
@@ -206,7 +206,7 @@ class RecipeListFrame(ttk.Frame):
     def fuzzy_name_search(self, *args):
         """Narrows recipe list from search box"""
         search_term = self.search.get().lower()
-        recipes = self.repo.list_recipes()
+        recipes = self.repo.all_recipes()
         result = [r.__name for r in recipes if search_term in r.__name.lower()]
         for r in recipes:
             if r.__name in result:

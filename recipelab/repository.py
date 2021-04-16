@@ -1,100 +1,78 @@
+from . import log
 from .ingredient import Ingredient
-from .recipe import Recipe, IngredientAmount
+from .recipe import Recipe
 from .db import DB
 
-# TODO: Modify Recipes/Ingredients
 
 class Repository:
 
     def __init__(self, db_path=":memory:"):
-        self._ingredients = set()
-        self._recipes = set()
+        self._ingredients = dict()
+        self._recipes = dict()
 
         try:
             self._db = DB(db_path)
-            self._load_data()
-        except Exception:
-            pass
+            self.refresh()
+        except Exception as e:
+            log.error(f"Error loading database ({e}).")
 
     def __repr__(self):
         return f"Repository({len(self._ingredients)} - ingredients, {len(self._recipes)} - recipes)"
 
-    def _load_data(self):
+    @staticmethod
+    def __db_row_to_ingredient(row: dict):
+        return Ingredient(row["id"], row["name"], row["amount"], row["unit"], row["cost"])
+
+    @staticmethod
+    def __db_row_to_recipe(row: dict):
+        return Recipe(row["id"], row["name"], row["servings"], row["serving_unit"], row["sale_price"])
+
+    def refresh(self):
+        self._ingredients.clear()
+        self._recipes.clear()
+
         ingredients = self._db.get_all_ingredients()
         for i in ingredients:
-            self._ingredients.add(
-                Ingredient(
-                    i['name'],
-                    i['package_amount'],
-                    i['package_cost'],
-                    Ingredient.Type(i['type']),
-                    i['unit'],
-                    i['id']
-                )
-            )
+            ingredient = self.__db_row_to_ingredient(i)
+            self._ingredients[ingredient.id] = ingredient
 
         recipes = self._db.get_all_recipes()
-        for r, ings in recipes:
-            ingredient_list = [
-                IngredientAmount(
-                    i['amount'],
-                    self.get_ingredient_by_id(i['ingredient_id'])
-                ) for i in ings
-            ]
-            recipe = Recipe(
-                r["name"],
-                r['servings'],
-                r['serving_unit'],
-                r['sale_price'],
-                ingredient_list,
-                r['id']
-            )
-            self._recipes.add(recipe)
+        for r in recipes:
+            recipe = self.__db_row_to_recipe(r)
+            for i in r["ingredients"]:
+                recipe.add_ingredient(i["amount"], i["unit"], self._ingredients[i["id"]])
+            self._recipes[recipe.id] = recipe
 
-    def add_ingredient(self, name, package_amount, package_cost, ingredient_type_number, unit):
-        ingredient = Ingredient(name, package_amount, package_cost, Ingredient.Type(ingredient_type_number), unit)
-        ingredient.id = self._db.insert_ingredient(ingredient.__name,
-                                                   ingredient.package_amount,
-                                                   ingredient.package_cost,
-                                                   ingredient.type.value,
-                                                   ingredient.unit)
-        self._ingredients.add(ingredient)
+    def new_ingredient(self, name: str, amount: float, unit: str, cost: float) -> None:
+        ingredient_id = self._db.insert_ingredient(name, amount, unit, cost)
+        self._ingredients[ingredient_id] = Ingredient(ingredient_id, name, amount, unit, cost)
 
-    def add_recipe(self, recipe):
-        self._recipes.add(recipe)
+    def new_recipe(self, name: str, servings: float, sale_price: float, serving_unit: str = None, ingredients_list: list[tuple[int, float, str]] = None):
+        recipe_id = self._db.insert_recipe(name, servings, sale_price, serving_unit, ingredients_list)
+        r = self._db.get_recipes((recipe_id,))[0]
+        recipe = self.__db_row_to_recipe(r)
+        for i in r["ingredients"]:
+            recipe.add_ingredient(i["amount"], i["unit"], self._ingredients[i["id"]])
+        self._recipes[recipe_id] = recipe
 
-    def _remove_ingredient(self, ingredient):
-        self._ingredients.remove(ingredient)
-        self._db.delete_ingredient(ingredient.id)
+    def get_ingredient(self, ingredient_id) -> Ingredient:
+        return self._ingredients[ingredient_id]
 
-    def _remove_recipe(self, recipe):
-        self._recipes.remove(recipe)
-        self._db.delete_recipe(recipe.id)
+    def get_recipe(self, recipe_id) -> Recipe:
+        return self._recipes[recipe_id]
 
-    def remove(self, item):
-        """Remove an Ingredient or Recipe"""
-        if isinstance(item, Recipe):
-            self._remove_recipe(item)
-        elif isinstance(item, Ingredient):
-            self._remove_ingredient(item)
-        else:
-            raise Exception("Item must be a Recipe or Ingredient")
+    def list_ingredients(self) -> list[Ingredient]:
+        return list(self._ingredients.values())
 
-    def get_ingredient_by_id(self, id):
-        for i in self._ingredients:
-            if i.id == id:
-                return i
-        return None
+    def list_recipes(self) -> list[Recipe]:
+        return list(self._recipes.values())
 
-    def get_recipe_by_id(self, id):
-        for r in self._ingredients:
-            if r.id == id:
-                return r
-        return None
+    # TODO: Edit ingredients/recipes
 
-    def list_ingredients(self):
-        return self._ingredients
+    def delete_ingredient(self, ingredient_id) -> None:
+        self._db.delete_ingredients((ingredient_id,))
+        del self._ingredients[ingredient_id]
 
-    def list_recipes(self):
-        return self._recipes
-
+    def delete_recipe(self, recipe_id) -> None:
+        self._db.delete_recipes((recipe_id,))
+        del self._recipes[recipe_id]

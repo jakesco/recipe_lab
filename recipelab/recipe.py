@@ -90,7 +90,7 @@ class Recipe:
             if ingredient_amount not in self.__ingredients:
                 self.__ingredients.append(ingredient_amount)
                 self.__cost = self.cost()
-                log.info(f"{ingredient_amount} added to {self.name}.")
+                log.info(f"{ingredient_amount.amount:~} {ingredient_amount.ingredient.name} added to {self.name}.")
         except IncompatibleUnitConversion as e:
             log.error(f"{unit} is not compatible with {ingredient.amount.units}.")
             raise e
@@ -99,7 +99,7 @@ class Recipe:
             raise e
 
     def remove_ingredient(self, amount: float, unit: str, ingredient: Ingredient):
-        # TODO: revisit this (may want to just pass index as argument)
+        # TODO: revisit this (may want to just pass id as argument)
         ingredient_amount = RecipeIngredient(Q_(amount, unit), ingredient)
         self.__ingredients = [i for i in self.__ingredients if i != ingredient_amount]
         self.__cost = self.cost()

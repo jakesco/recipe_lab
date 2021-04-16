@@ -8,7 +8,7 @@ if __name__ == "__main__":
     repo._db.init_db()
     with open("./sample_data.sql") as f:
         repo._db._db_cur.executescript(f.read())
-    repo._load_data()
+    repo.refresh()
 
     rlw = MainWindow(repo)
     rlw.mainloop()
