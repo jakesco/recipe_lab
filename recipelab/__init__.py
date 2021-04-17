@@ -8,7 +8,7 @@ INFOFORMATTER = '%(levelname): %(message)s'
 
 def init_log():
     log = logging.getLogger(__name__)
-    log.setLevel(logging.DEBUG)
+    log.setLevel(logging.WARNING)
     ch = logging.StreamHandler()
     ch.setFormatter(logging.Formatter(DEBUGFORMATTER))
     log.addHandler(ch)

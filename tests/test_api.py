@@ -10,28 +10,21 @@ class TestAPI(unittest.TestCase):
             self.api.repo._db._db_cur.executescript(f.read())
         self.api.repo.refresh()
 
-    def test_failed(self):
-        message = "test fail"
-        print(failed(message, indent=2))
-
-    def test_success(self):
-        message = {1: "this", 2: "is", 3: "a", 4: "test"}
-        print(success(message, indent=2))
-
     def test_all_ingredients(self):
         result = self.api.all_ingredients()
-        print(result)
 
     def test_all_recipes(self):
         result = self.api.all_recipes()
-        print(result)
 
     def test_get_ingredients(self):
-        result = self.api.get_ingredients((1,))
-        print(result)
+        result = self.api.get_ingredients('{"ids":[1,2,3,4]}')
 
     def test_get_recipes(self):
-        result = self.api.get_recipes((1,))
+        result = self.api.get_recipes('{"ids":[1,2]}')
+        print(result)
+
+    def test_new_ingredient(self):
+        result = self.api.new_ingredient('{"name": "test", "amount": null, "unit": null, "cost": null}')
         print(result)
 
 
