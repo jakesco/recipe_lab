@@ -29,7 +29,7 @@ class RecipeLabAPI:
             return failed(message)
         try:
             self.repo.new_ingredient(args["name"], args["amount"], args["unit"], args["cost"])
-            return success()
+            return success(f"New ingredient ({args['name']}) added.")
         except Exception as e:
             message = f"Failed to create new ingredient ({e})."
             log.error(message)

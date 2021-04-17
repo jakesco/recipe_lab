@@ -45,6 +45,7 @@ class Repository:
 
     def new_ingredient(self, name: str, amount: float, unit: str, cost: float) -> None:
         ingredient_id = self._db.insert_ingredient(name, amount, unit, cost)
+        # TODO if this second statement fails, the ingredient may still be added to db
         self._ingredients[ingredient_id] = Ingredient(ingredient_id, name, amount, unit, cost)
 
     def new_recipe(self, name: str, servings: float, sale_price: float, serving_unit: str = None, ingredients_list: list[tuple[int, float, str]] = None):

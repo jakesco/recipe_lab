@@ -123,7 +123,7 @@ class Recipe:
                 'ingredients': [
                     {'amount': i.amount.magnitude,
                      'unit': f"{i.amount.units:~}",
-                     'ingredient_id': i.ingredient.id
+                     'ingredient': i.ingredient.to_dict(),
                      } for i in self.__ingredients],
                 'cost': self.cost(),
                 'cost_per_serving': self.cost_per_serving(),

@@ -7,7 +7,7 @@ INSERT INTO ingredient VALUES (6, "Semi-Sweet Chocolate Chips", 11, "oz", 1.74);
 INSERT INTO ingredient VALUES (7, "Milk", 64, "floz", 1.31);
 INSERT INTO ingredient VALUES (8, "Yeast", 2.25, "tsp", 0.80);
 INSERT INTO ingredient VALUES (9, "White Sugar", 64, "oz", 2.00);
-INSERT INTO ingredient VALUES (10, "Eggs", 11, "egg", 0.89);
+INSERT INTO ingredient VALUES (10, "Eggs", 12, "egg", 0.89);
 INSERT INTO ingredient VALUES (11, "Cinnamon", 2.5, "oz", 1.18);
 INSERT INTO ingredient VALUES (12, "Nutmeg", 1.8, "oz", 5.94);
 INSERT INTO ingredient VALUES (13, "Allspice", 1.6, "oz", 3.97);
